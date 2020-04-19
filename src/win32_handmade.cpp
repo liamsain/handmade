@@ -1,5 +1,7 @@
 #include <windows.h>
 #include <stdint.h>
+#include <xinput.h>
+
 #define internal static 
 #define local_persist static 
 #define global_variable static 
@@ -47,9 +49,13 @@ internal void RenderWeirdThing(Win32OffScreenBuffer buffer, int offsetX, int off
     for(int x = 0; x < buffer.Width; ++x) {
     // pixel in memory = BB GG RR XX
     // 0xxxRRGGBB
-      uint8 blue = x + offsetX;
-      uint8 green = y + offsetY;
+      uint8 blue = x - offsetX;
+      uint8 green = y - offsetY;
+      // writing to pointer: *myP = 3, reading from p: var x = *mP
       *pixel++ = ((green << 8) | blue);
+      // same as saying:
+      // *pixel = whatever;
+      // ++pixel;
     }
     row += buffer.Pitch;
   }
@@ -130,6 +136,7 @@ LRESULT CALLBACK Win32MainWindowCallback(HWND window,UINT message,WPARAM wParam,
       EndPaint(window, &paint);
     } break;
     default: {
+      // if you delete this you have to restart your computer
       result = DefWindowProc(window, message, wParam, lParam);
     } break;
   }
@@ -180,6 +187,26 @@ int CALLBACK WinMain(
       }
       TranslateMessage(&message);
       DispatchMessage(&message);
+    }
+    DWORD dwResult;    
+    for (DWORD i=0; i< XUSER_MAX_COUNT; i++ )
+    {
+      XINPUT_STATE controllerState;
+      // ZeroMemory( &controllerState, sizeof(XINPUT_STATE) );
+
+      // Simply get the state of the controller from XInput.
+      dwResult = XInputGetState( i, &controllerState );
+
+      if( dwResult == ERROR_SUCCESS )
+      {
+          // Controller is connected 
+          XINPUT_GAMEPAD *pad = &controllerState.Gamepad;
+          MessageBox(window, "gamepad detected", "gamepad detected", MB_OK);
+      }
+      else
+      {
+          // Controller is not connected 
+      }
     }
     RenderWeirdThing(GlobalBackBuffer, xOffset, yOffset);
     HDC deviceContext = GetDC(window);
